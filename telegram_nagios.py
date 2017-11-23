@@ -5,7 +5,8 @@ from twx.botapi import TelegramBot
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Nagios notification via Telegram')
+    parser = argparse.ArgumentParser(
+        description='Nagios notification via Telegram')
     parser.add_argument('-t', '--token', nargs='?', required=True)
     parser.add_argument('-o', '--object_type', nargs='?', required=True)
     parser.add_argument('--contact', nargs='?', required=True)
@@ -22,7 +23,7 @@ def parse_args():
 
 def send_notification(token, user_id, message):
     bot = TelegramBot(token)
-    bot.send_message(user_id, message).wait()
+    bot.send_message(user_id, message, 'Markdown').wait()
 
 
 def host_notification(args):
@@ -33,13 +34,24 @@ def host_notification(args):
         state = u'\U0001F525 '
     elif args.hoststate == 'UNREACHABLE':
         state = u'\U00002753 '
+    if (args.notificationtype == 'FLAPPINGSTART' or args.notificationtype == 'FLAPPINGSTOP'):
+        state = state + '*FLAPPING*'
+    elif args.notificationtype == 'PROBLEM':
+        state = state + '*PROBLEM*'
+    elif args.notificationtype == 'RECOVERY':
+        state = state + '*RECOVERY*'
 
-    return "%s%s (%s): %s" % (
-        state,
-        args.hostname,
-        args.hostaddress,
-        args.output,
-    )
+    message = u'''
+    {state}
+    {hostname}({hostaddress})
+    {output}'''
+    message = message.format(state=state,
+                             hostname=args.hostname,
+                             hostaddress=args.hostaddress,
+                             output='\n '.join(args.output.split(','))
+                             )
+
+    return message
 
 
 def service_notification(args):
@@ -52,13 +64,21 @@ def service_notification(args):
         state = u'\U0001F525 '
     elif args.servicestate == 'UNKNOWN':
         state = u'\U00002753 '
+    if (args.notificationtype == 'FLAPPINGSTART' or args.notificationtype == 'FLAPPINGSTOP'):
+        state = state + '*FLAPPING*'
 
-    return "%s%s/%s: %s" % (
-        state,
-        args.hostname,
-        args.servicedesc,
-        args.output,
-    )
+    message = u'''
+    {state}
+    {hostname}
+    {descr}
+    {output}'''
+    message = message.format(state=state,
+                             hostname=args.hostname,
+                             descr=args.servicedesc,
+                             output='\n '.join(args.output.split(','))
+                             )
+
+    return message
 
 
 def main():
@@ -69,6 +89,7 @@ def main():
     elif args.object_type == 'service':
         message = service_notification(args)
     send_notification(args.token, user_id, message)
+
 
 if __name__ == '__main__':
     main()
