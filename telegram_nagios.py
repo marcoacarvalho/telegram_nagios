@@ -66,6 +66,10 @@ def service_notification(args):
         state = u'\U00002753 '
     if (args.notificationtype == 'FLAPPINGSTART' or args.notificationtype == 'FLAPPINGSTOP'):
         state = state + '*FLAPPING*'
+    elif args.notificationtype == 'PROBLEM':
+        state = state + '*PROBLEM*'
+    elif args.notificationtype == 'RECOVERY':
+        state = state + '*RECOVERY*'
 
     message = u'''
     {state}
